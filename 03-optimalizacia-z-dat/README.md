@@ -21,8 +21,14 @@ Operátor / energetik, ktorý chce vidieť „kde nám to žerie“ bez Excel to
 - Ručný hodinový denník
 
 ## Očakávané stĺpce (príklad — upraviť podľa reality)
-`timestamp, gas_nm3, air_flow, feedwater_t, steam_t, load_mw, flue_o2_pct`  
-(Presné mená a jednotky potvrdí operátor.)
+`timestamp, gas_nm3, air_flow, feedwater_th, steam_th, load_mw, flue_o2_pct, running`
+
+- `feedwater_th` / `steam_th` = **prietok t/h** (nie teplota). Pomer para/napájacia voda má zmysel len z prietokov.
+- `running` = 0/1 (odstav vs beh). Ak chýba, tool odhadne beh z load.
+- Sample CSV je syntetický — **nebrať z neho pásma ako fakty**.
+- Flag „vysoká merná“ počítať len v hodinách behu; nábeh/odstav mimo štatistiky.
+
+Presné mená a jednotky potvrdí operátor pred ostrým nasadením.
 
 ## Technický návrh
 Statický `index.html` načítajúci CSV (File API). Neskôr: dohodnutý priečinok exportu zo SCADA.
