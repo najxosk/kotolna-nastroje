@@ -1,0 +1,539 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Poruchovy strom</title>
+<style>
+
+:root{--bg:#0f1419;--card:#1a222c;--line:#2c3846;--text:#e8eef4;--muted:#9aa8b5;--accent:#3d9cf0;--yes:#3ecf8e;--no:#f07178;--node:#243041}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.45}
+.wrap{max-width:42rem;margin:0 auto;padding:1rem 1rem 3rem}
+h1{font-size:1.25rem;margin:.25rem 0}.sub{color:var(--muted);font-size:.85rem}
+.warn{background:#3a2428;border:1px solid #5c3036;color:#ffc9cd;padding:.75rem 1rem;border-radius:12px;margin:1rem 0;font-size:.9rem}
+.hint{font-size:.8rem;color:var(--muted);margin:.35rem 0 .75rem}
+.toolbar,.editbar{display:flex;flex-wrap:wrap;gap:.4rem;margin:.6rem 0}
+button,.filebtn{appearance:none;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:999px;padding:.5rem .9rem;font-size:.9rem;cursor:pointer}
+button.active{background:var(--accent);border-color:var(--accent);color:#061018;font-weight:650}
+button.primary{background:var(--accent);border-color:var(--accent);color:#061018;font-weight:650}
+button.ghost,.filebtn.ghost{color:var(--muted);font-size:.8rem}
+.filebtn{display:inline-block}.filebtn input{display:none}
+.editbar{border:1px dashed #4a3d8a;background:#16122a;padding:.55rem;border-radius:12px}
+.backup{margin-top:.5rem;padding:.55rem .75rem;border:1px solid var(--line);border-radius:10px;background:#12181f;font-size:.8rem;color:var(--muted)}
+.backup summary{cursor:pointer;color:var(--text);font-weight:600}
+.backup .row{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.5rem}
+.picks{display:flex;flex-wrap:wrap;gap:.5rem;margin:1rem 0}
+.node{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:1rem 1.1rem;position:relative}
+.node.root{border-color:#3d6a8a}.node.q{border-color:#3d5a4a}.node.end{border-color:#6a5a3d;background:#1f241c}
+.node.past{opacity:.9;cursor:pointer}.node.past:hover{border-color:var(--accent)}
+.node .tag{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.35rem}
+.node .qtext{font-size:1.05rem;font-weight:600}.node .endtext{font-size:.95rem;white-space:pre-wrap}
+.trunk{width:2px;height:14px;background:#4a5a6a;margin:0 auto}
+.branch-row{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-top:.15rem}
+.branch{display:flex;flex-direction:column;align-items:center}
+.branch .elbow{width:100%;height:16px;position:relative}
+.branch.left .elbow::before,.branch.right .elbow::before{content:"";position:absolute;top:0;height:2px;background:#4a5a6a;width:50%}
+.branch.left .elbow::before{right:0}.branch.right .elbow::before{left:0}
+.branch .elbow::after{content:"";position:absolute;top:0;width:2px;height:100%;background:#4a5a6a;left:50%;transform:translateX(-50%)}
+.choice{display:flex;gap:.5rem;justify-content:center;margin-top:.85rem;flex-wrap:wrap}
+.choice button{min-width:6.5rem;border:none;border-radius:999px;padding:.6rem 1.2rem;font-weight:650;cursor:pointer;font-size:1rem}
+.choice .yes{background:var(--yes);color:#062416}.choice .no{background:var(--no);color:#2a0608}
+.edit-actions{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.65rem}
+.edit-actions button{font-size:.78rem;padding:.3rem .65rem;border-color:#4a3d8a}
+.crumb{font-size:.8rem;color:var(--muted);margin:.5rem 0 0;min-height:1.4rem}
+.crumb span{display:inline-block;background:var(--node);padding:.15rem .45rem;border-radius:999px;margin:.15rem .2rem 0 0}
+.hint-back{font-size:.75rem;color:var(--muted);margin-top:.35rem}
+.preview-wrap{opacity:.88}
+/* smooth appear */
+.step{animation:rise .28s ease-out}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--text);width:min(36rem,96vw);padding:0}
+dialog::backdrop{background:rgba(0,0,0,.55)}
+.hd{padding:1rem;border-bottom:1px solid var(--line);font-weight:650}
+.bd{padding:1rem}.ft{padding:1rem;border-top:1px solid var(--line);display:flex;gap:.5rem;justify-content:flex-end}
+label{display:block;font-size:.75rem;color:var(--muted);margin:.4rem 0 .2rem}
+input,select,textarea{width:100%;background:#12181f;border:1px solid var(--line);color:var(--text);border-radius:8px;padding:.5rem .65rem;font-size:1rem}
+textarea{min-height:5rem;resize:vertical}
+@media(max-width:560px){.branch-row{grid-template-columns:1fr}.branch .elbow{height:10px}.branch.left .elbow::before,.branch.right .elbow::before{display:none}}
+
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>Poruchovy strom</h1>
+  <p class="sub">6 demo vetiev na ukazku potencialu — neskôr tvoje realne alarmy.</p>
+  <div class="warn"><strong>Placeholder.</strong> Nie je to ostry postup vasej kotolne. Sluzi na ukazku ako bude vyzerat rozhodovanie.</div>
+  <p class="hint">Bezne = Prechadzanie. Upravovat = vlastne vetvy. Ak nevidis 6 stromov: Upravovat → Zaloha → Reset na demo.</p>
+  <div class="toolbar">
+    <button type="button" id="modeWalk" class="active">Prechadzanie</button>
+    <button type="button" id="modeEdit">Upravovat</button>
+    <button type="button" id="btnBack" disabled>Spat o krok</button>
+    <button type="button" id="btnReset" class="ghost">Spat na vyber</button>
+  </div>
+  <div id="editBar" class="editbar" hidden>
+    <button type="button" id="btnAddTree">+ Novy strom</button>
+    <button type="button" id="btnRenameTree">Premenovat</button>
+    <button type="button" id="btnDeleteTree">Zmazat strom</button>
+    <details class="backup">
+      <summary>Zaloha (volitelne)</summary>
+      <p>Upravy sa ukladaju same v tomto prehliadaci. JSON len ak chces skopirovat na iny PC.</p>
+      <div class="row">
+        <button type="button" id="btnExport" class="ghost">Stiahnut zalohu</button>
+        <label class="filebtn ghost">Nahrat zalohu<input type="file" id="importFile" accept="application/json,.json" /></label>
+        <button type="button" id="btnDemo" class="ghost">Reset na demo</button>
+      </div>
+    </details>
+  </div>
+  <div class="picks" id="menu"></div>
+  <div class="crumb" id="crumb" hidden></div>
+  <div class="tree" id="tree"></div>
+  <dialog id="dlg">
+    <div class="hd" id="dlgTitle">Uprava</div>
+    <div class="bd" id="dlgBody"></div>
+    <div class="ft">
+      <button type="button" id="dlgCancel">Zrusit</button>
+      <button type="button" id="dlgSave" class="primary">Ulozit</button>
+    </div>
+  </dialog>
+</div>
+<script>
+
+(function () {
+  const STORE = "poruchovy-strom-v3";
+  const $ = (id) => document.getElementById(id);
+  const menu = $("menu"), tree = $("tree"), crumb = $("crumb");
+  const btnBack = $("btnBack"), btnReset = $("btnReset");
+  const modeWalk = $("modeWalk"), modeEdit = $("modeEdit"), editBar = $("editBar");
+  const dlg = $("dlg"), dlgTitle = $("dlgTitle"), dlgBody = $("dlgBody");
+
+function demoTrees() {
+    return {
+      flame: {
+        title: "1 · Strata plamena",
+        start: "s1",
+        nodes: {
+          s1: { kind: "q", text: "Je privod plynu otvoreny a tlak v norme?", yes: "s2", no: "e_gas" },
+          s2: { kind: "q", text: "Bezi vzduch / ventilator v poriadku?", yes: "s3", no: "e_fan" },
+          s3: { kind: "q", text: "Dovoluje predpis restart a mas opravnenie?", yes: "s4", no: "e_call" },
+          s4: { kind: "q", text: "Po jednom pokuse restartu plamen drzi?", yes: "e_ok", no: "e_repeat" },
+          e_gas: { kind: "end", text: "Skontroluj privod/tlak plynu podla predpisu.
+
+Do dennika: cas, tlak, stav armatur.
+
+(Potencial: napojenie na konkretne cisla z vaseho panelu.)" },
+          e_fan: { kind: "end", text: "Skontroluj vzduchovu cestu / ventilator podla predpisu.
+
+Do dennika: stav ventilatora, klapky." },
+          e_call: { kind: "end", text: "Bez opravnenia / stale zle -> majster alebo pohotovost.
+
+Do dennika: co si skontroloval." },
+          e_ok: { kind: "end", text: "Plamen drzi — sleduj parametre 10–15 min.
+
+Do dennika: cas vypadku, cas obnovy, pocet restartov = 1." },
+          e_repeat: { kind: "end", text: "Opakovany vypadok — neopakuj donekonecna. Volaj.
+
+Do dennika: pocet pokusov, symptomy." }
+        }
+      },
+      pressure_low: {
+        title: "2 · Nizky tlak pary",
+        start: "s1",
+        nodes: {
+          s1: { kind: "q", text: "Je odber pary nahle vyssi (spicka v sieti)?", yes: "e_load", no: "s2" },
+          s2: { kind: "q", text: "Horak bezi na ocakavanom vykone?", yes: "s3", no: "e_fuel" },
+          s3: { kind: "q", text: "Je viditelny unik / odvzdusnenie / poistka v akcii?", yes: "e_leak", no: "e_sensor" },
+          e_load: { kind: "end", text: "Mozna spicka odberu. Sleduj vykon, komunikuj s odberom.
+
+Do dennika: tlak, odber ak vies.
+
+(Potencial: graf tlaku vs. odber z hodinych dat.)" },
+          e_fuel: { kind: "end", text: "Over palivo a regulaciu horaka.
+
+Do dennika: vykon %, tlak, palivo." },
+          e_leak: { kind: "end", text: "Over miesta uniku / poistky podla predpisu.
+
+Do dennika: kde si pozeral." },
+          e_sensor: { kind: "end", text: "Mozny problem merania alebo pomaly nabiehajuci vykon.
+
+Do dennika: porovnanie ukazovatelov tlaku." }
+        }
+      },
+      drum: {
+        title: "3 · Vysoka hladina v bubne",
+        start: "s1",
+        nodes: {
+          s1: { kind: "q", text: "Sedia vsetky ukazovatele hladiny navzajom?", yes: "s2", no: "e_sensor" },
+          s2: { kind: "q", text: "Je napajanie / ventil v rozumnej polohe?", yes: "s3", no: "e_valve" },
+          s3: { kind: "q", text: "Je odber pary velmi nizky oproti napajaniu?", yes: "e_balance", no: "e_limit" },
+          e_sensor: { kind: "end", text: "Mozny chybny snimac / meranie.
+
+Do dennika: ktore ukazovatele nesedia." },
+          e_valve: { kind: "end", text: "Ries napajanie podla predpisu — bez improvizacie mimo opravneni.
+
+Do dennika: poloha ventila / prietok." },
+          e_balance: { kind: "end", text: "Nepomer napajanie vs. odber — uprav podla predpisu / regulacie.
+
+Do dennika: hladina, napajanie, odber." },
+          e_limit: { kind: "end", text: "Pri limitoch konaj podla havarijneho postupu / volaj.
+
+Do dennika: cas, hladina, co si spravil.
+
+(Potencial: fotka panelu + checklist z MPPP.)" }
+        }
+      },
+      fan: {
+        title: "4 · Vypadok vzduchoveho ventilatora",
+        start: "s1",
+        nodes: {
+          s1: { kind: "q", text: "Vypadol jeden ventilator, alebo oba?", yes: "s2", no: "s3" },
+          s2: { kind: "q", text: "Druhy ventilator bezi a tlak vzduchu staci?", yes: "e_one", no: "e_both" },
+          s3: { kind: "q", text: "Je to elektrina / istič / frekvencny menic?", yes: "e_elec", no: "e_mech" },
+          e_one: { kind: "end", text: "Jeden ventilator: uprav vykon podla predpisu, sleduj blokady.
+
+Do dennika: ktory ventilator, vykon, tlak vzduchu.
+
+(Potencial: strom naviazany na vase konkretne blokady.)" },
+          e_both: { kind: "end", text: "Oba / nedostatocny vzduch: typicky odstavenie spaľovania podla ochran.
+
+Do dennika: cas, stav oboch, co spustilo ochranu." },
+          e_elec: { kind: "end", text: "Elektrina / menic — podla predpisu, bez zasahu mimo opravneni.
+
+Do dennika: istič, alarm menica, kto bol privolany." },
+          e_mech: { kind: "end", text: "Mozna mechanika (hluk, vibracie, klapky).
+
+Do dennika: co pocujes/vidis, teplota, vibracie." }
+        }
+      },
+      water: {
+        title: "5 · Podozrenie na chemicky rezim / odkal",
+        start: "s1",
+        nodes: {
+          s1: { kind: "q", text: "Je kotol v behu viac ako ~4 tyzdne bez odkalenia?", yes: "e_blow", no: "s2" },
+          s2: { kind: "q", text: "Mas cerstvo vysledok akosti vody mimo limitu?", yes: "e_chem", no: "s3" },
+          s3: { kind: "q", text: "Je podozrenie na zanesenie / nestabilnu hladinu?", yes: "e_foul", no: "e_watch" },
+          e_blow: { kind: "end", text: "Zvaz odkal podla predpisu (aj za behu len v dovolenych podmienkach).
+
+Do dennika: posledne odkalenie, vykon pri odkale.
+
+(Potencial: pripomienka z dennika + chemicke cisla z labaky.)" },
+          e_chem: { kind: "end", text: "Chemicky rezim mimo limitu — postup podla predpisu / chemika.
+
+Do dennika: namerane hodnoty, davkovanie, kto rozhodol." },
+          e_foul: { kind: "end", text: "Nestabilna hladina / podozrenie na zanesenie — nespekuluj; zapis a eskaluj.
+
+Do dennika: symptomy, tlak, hladina." },
+          e_watch: { kind: "end", text: "Zatial len sleduj a zapis trend.
+
+Do dennika: preco si to riesil, co bolo v norme." }
+        }
+      },
+      trip: {
+        title: "6 · Nudzove / okamzite odstavenie (ukazka)",
+        start: "s1",
+        nodes: {
+          s1: { kind: "q", text: "Ide o aktivaciu ochrany / nudzove tlacidlo?", yes: "s2", no: "s3" },
+          s2: { kind: "q", text: "Vies z panelu ktora ochrana / signal to spustil?", yes: "e_known", no: "e_unknown" },
+          s3: { kind: "q", text: "Je ohrozena bezpecnost osob / okolia?", yes: "e_safe", no: "e_plan" },
+          e_known: { kind: "end", text: "Zapis presny signal/ochranu, cas, stav kotla.
+
+Dalsi krok: podla predpisu + majster.
+
+(Potencial: 1 klik = predvyplneny riadok do dennika Excel.)" },
+          e_unknown: { kind: "end", text: "Signal nejasny — neexperimentuj. Zabezpec stav, volaj.
+
+Do dennika: co svietilo, co si stlacil, cas." },
+          e_safe: { kind: "end", text: "Bezpecnost first — odstavenie / evakuacne postupy podla predpisu.
+
+Do dennika az ked je bezpecne." },
+          e_plan: { kind: "end", text: "Ak nie je okamzity ohroz — planovane odstavenie / tepla zaloha podla typu.
+
+Do dennika: dovod, typ odstavenia." }
+        }
+      }
+    };
+  }
+
+
+  function loadTrees() {
+    try {
+      const raw = localStorage.getItem(STORE);
+      if (!raw) return demoTrees();
+      const data = JSON.parse(raw);
+      return (data && data.trees) ? data.trees : demoTrees();
+    } catch (e) { return demoTrees(); }
+  }
+  function saveTrees() {
+    localStorage.setItem(STORE, JSON.stringify({ version: 2, trees: trees }));
+  }
+
+  let trees = loadTrees();
+  let mode = "walk";
+  let active = null;
+  let history = [];
+
+  function uid(prefix) {
+    return prefix + Date.now().toString(36) + Math.random().toString(36).slice(2, 5);
+  }
+  function esc(s) {
+    return String(s || "").replace(/[&<>"']/g, (c) => ({ "&":"&amp;","<":"&lt;",">":"&gt;","\"":"&quot;","'":"&#39;" }[c]));
+  }
+
+  function setMode(m) {
+    mode = m;
+    modeWalk.classList.toggle("active", m === "walk");
+    modeEdit.classList.toggle("active", m === "edit");
+    editBar.hidden = m !== "edit";
+    renderMenu();
+    if (active) renderTree({ animateLast: false });
+  }
+  modeWalk.onclick = () => setMode("walk");
+  modeEdit.onclick = () => setMode("edit");
+
+  function renderMenu() {
+    menu.innerHTML = "";
+    Object.keys(trees).forEach((id) => {
+      const b = document.createElement("button");
+      b.textContent = trees[id].title;
+      b.onclick = () => start(id);
+      menu.appendChild(b);
+    });
+  }
+
+  function start(id) {
+    active = id;
+    history = [{ id: trees[id].start, answer: null }];
+    menu.hidden = true;
+    crumb.hidden = false;
+    btnBack.disabled = true;
+    renderTree({ animateLast: true });
+  }
+
+  btnReset.onclick = () => {
+    active = null; history = [];
+    menu.hidden = false; crumb.hidden = true;
+    tree.innerHTML = ""; btnBack.disabled = true;
+    renderMenu();
+  };
+
+  btnBack.onclick = () => {
+    if (history.length <= 1) return;
+    history.pop();
+    history[history.length - 1].answer = null;
+    renderTree({ animateLast: false });
+  };
+
+  function jumpTo(i) {
+    if (i < 0 || i >= history.length - 1) return;
+    history = history.slice(0, i + 1);
+    history[history.length - 1].answer = null;
+    renderTree({ animateLast: false });
+  }
+
+  function openDlg(title, bodyHtml, onSave) {
+    dlgTitle.textContent = title;
+    dlgBody.innerHTML = bodyHtml;
+    dlg.showModal();
+    $("dlgCancel").onclick = () => dlg.close();
+    $("dlgSave").onclick = () => { if (onSave()) dlg.close(); };
+  }
+
+  function nodeHtml(n, h, i, isLast) {
+    const cls = n.kind === "end" ? "end" : (i === 0 ? "root" : "q");
+    const past = !isLast ? " past" : "";
+    const tag = n.kind === "end" ? "Zaver" : (isLast ? "Otazka" : "Otazka · hotova");
+    let html = '<div class="step"><div class="node ' + cls + past + '" data-hist="' + i + '">';
+    html += '<div class="tag">' + tag + (h.answer ? (" · " + h.answer) : "") + "</div>";
+    html += n.kind === "end" ? '<div class="endtext"></div>' : '<div class="qtext"></div>';
+    if (!isLast) html += '<div class="hint-back">Klik = spat na tento krok</div>';
+    if (isLast && n.kind === "q" && mode === "walk") {
+      html += '<div class="choice">' +
+        '<button type="button" class="yes" data-a="ANO" data-next="' + n.yes + '">ANO</button>' +
+        '<button type="button" class="no" data-a="NIE" data-next="' + n.no + '">NIE</button></div>';
+    }
+    if (mode === "edit") {
+      html += '<div class="edit-actions">' +
+        '<button type="button" data-ed="text" data-nid="' + h.id + '">Upravit text</button>' +
+        (n.kind === "q" ? '<button type="button" data-ed="links" data-nid="' + h.id + '">ANO/NIE ciele</button>' : "") +
+        '<button type="button" data-ed="addq" data-nid="' + h.id + '">+ Otazka za ANO</button>' +
+        '<button type="button" data-ed="adde" data-nid="' + h.id + '">+ Zaver za NIE</button>' +
+        '<button type="button" data-ed="del" data-nid="' + h.id + '">Zmazat uzol</button></div>';
+    }
+    html += "</div></div>";
+    return html;
+  }
+
+  function previewHtml(T, node) {
+    if (!node || node.kind !== "q" || mode !== "walk") return "";
+    const y = T.nodes[node.yes], n = T.nodes[node.no];
+    const ytxt = y ? (y.kind === "end" ? (y.text || "").slice(0, 80) + "…" : y.text) : "?";
+    const ntxt = n ? (n.kind === "end" ? (n.text || "").slice(0, 80) + "…" : n.text) : "?";
+    return '<div class="preview-wrap step"><div class="trunk"></div><div class="branch-row">' +
+      '<div class="branch left"><div class="elbow"></div><div class="node" style="font-size:.88rem"><div class="tag">Ak ANO</div>' + esc(ytxt) + "</div></div>" +
+      '<div class="branch right"><div class="elbow"></div><div class="node" style="font-size:.88rem"><div class="tag">Ak NIE</div>' + esc(ntxt) + "</div></div></div></div>";
+  }
+
+  function renderTree(opts) {
+    opts = opts || {};
+    const T = trees[active];
+    if (!T) return;
+    btnBack.disabled = history.length <= 1;
+    crumb.innerHTML = "<strong>Cesta:</strong> " + history.map((h, i) => {
+      const n = T.nodes[h.id];
+      const label = !n ? "?" : (n.kind === "end" ? "zaver" : ("krok " + (i + 1)));
+      return "<span>" + label + (h.answer ? (" · " + h.answer) : "") + "</span>";
+    }).join("");
+
+    // Keep scroll position stable — no jump to top
+    const y = window.scrollY;
+    let html = "";
+    history.forEach((h, i) => {
+      const n = T.nodes[h.id];
+      if (!n) return;
+      if (i > 0) html += '<div class="trunk"></div>';
+      html += nodeHtml(n, h, i, i === history.length - 1);
+    });
+    const cur = history[history.length - 1];
+    html += previewHtml(T, T.nodes[cur.id]);
+    tree.innerHTML = html;
+
+    // fill text
+    const nodes = tree.querySelectorAll(".node[data-hist]");
+    history.forEach((h, i) => {
+      const n = T.nodes[h.id];
+      if (!n || !nodes[i]) return;
+      const box = nodes[i].querySelector(".qtext, .endtext");
+      if (box) box.textContent = n.text || "";
+    });
+
+    // only animate the newest step
+    if (opts.animateLast === false) {
+      tree.querySelectorAll(".step").forEach((el) => { el.style.animation = "none"; });
+    } else {
+      tree.querySelectorAll(".step").forEach((el, idx, list) => {
+        if (idx < list.length - 1) el.style.animation = "none";
+      });
+    }
+
+    tree.querySelectorAll(".node.past").forEach((el) => {
+      el.onclick = () => jumpTo(Number(el.getAttribute("data-hist")));
+    });
+    tree.querySelectorAll(".choice button").forEach((btn) => {
+      btn.onclick = () => {
+        history[history.length - 1].answer = btn.dataset.a;
+        history.push({ id: btn.dataset.next, answer: null });
+        renderTree({ animateLast: true });
+        // gentle scroll only if new content is below fold
+        const last = tree.querySelector(".step:last-child");
+        if (last) {
+          const rect = last.getBoundingClientRect();
+          if (rect.bottom > window.innerHeight - 24) {
+            last.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          }
+        }
+      };
+    });
+    tree.querySelectorAll(".edit-actions button").forEach((btn) => {
+      btn.onclick = (ev) => { ev.stopPropagation(); handleEdit(btn.dataset.ed, btn.dataset.nid); };
+    });
+    window.scrollTo(0, y);
+  }
+
+  function handleEdit(action, nid) {
+    const T = trees[active];
+    if (!T) return;
+    const n = T.nodes[nid];
+    if (action === "text") {
+      openDlg("Upravit text", '<label>Text</label><textarea id="fText"></textarea>', () => {
+        T.nodes[nid].text = $("fText").value.trim() || T.nodes[nid].text;
+        saveTrees(); renderTree({ animateLast: false }); return true;
+      });
+      $("fText").value = n.text || "";
+    } else if (action === "links" && n.kind === "q") {
+      const opts = Object.keys(T.nodes).map((id) => {
+        const nn = T.nodes[id];
+        return '<option value="' + id + '">' + id + " · " + (nn.kind === "end" ? "zaver" : "otazka") + " · " + esc((nn.text || "").slice(0, 40)) + "</option>";
+      }).join("");
+      openDlg("ANO / NIE ciele",
+        '<label>Pri ANO chod na</label><select id="fYes">' + opts + '</select>' +
+        '<label>Pri NIE chod na</label><select id="fNo">' + opts + '</select>',
+        () => { n.yes = $("fYes").value; n.no = $("fNo").value; saveTrees(); renderTree({ animateLast: false }); return true; });
+      $("fYes").value = n.yes; $("fNo").value = n.no;
+    } else if (action === "addq" || action === "adde") {
+      const kind = action === "addq" ? "q" : "end";
+      const newId = uid(kind === "q" ? "q" : "e");
+      if (kind === "q") T.nodes[newId] = { kind: "q", text: "Nova otazka", yes: nid, no: nid };
+      else T.nodes[newId] = { kind: "end", text: "Novy zaver — dopln text." };
+      if (n.kind === "q") { if (action === "addq") n.yes = newId; else n.no = newId; }
+      saveTrees(); renderTree({ animateLast: false }); handleEdit("text", newId);
+    } else if (action === "del") {
+      if (nid === T.start) { alert("Startovaci uzol nemaz."); return; }
+      if (!confirm("Zmazat tento uzol?")) return;
+      delete T.nodes[nid];
+      Object.keys(T.nodes).forEach((id) => {
+        const nn = T.nodes[id];
+        if (nn.kind === "q") {
+          if (nn.yes === nid) nn.yes = T.start;
+          if (nn.no === nid) nn.no = T.start;
+        }
+      });
+      history = [{ id: T.start, answer: null }];
+      saveTrees(); renderTree({ animateLast: false });
+    }
+  }
+
+  $("btnAddTree").onclick = () => {
+    openDlg("Novy strom", '<label>Nazov</label><input id="fTitle" /><label>Prva otazka</label><textarea id="fFirst"></textarea>', () => {
+      const title = $("fTitle").value.trim();
+      const first = $("fFirst").value.trim();
+      if (!title || !first) { alert("Vypln nazov aj otazku"); return false; }
+      const id = uid("t"), q = uid("q"), eY = uid("e"), eN = uid("e");
+      trees[id] = { title, start: q, nodes: {
+        [q]: { kind: "q", text: first, yes: eY, no: eN },
+        [eY]: { kind: "end", text: "Zaver pri ANO — uprav." },
+        [eN]: { kind: "end", text: "Zaver pri NIE — uprav." }
+      }};
+      saveTrees(); renderMenu(); start(id); setMode("edit"); return true;
+    });
+  };
+  $("btnRenameTree").onclick = () => {
+    if (!active) return;
+    openDlg("Premenovat", '<label>Nazov</label><input id="fTitle" />', () => {
+      trees[active].title = $("fTitle").value.trim() || trees[active].title;
+      saveTrees(); renderMenu(); return true;
+    });
+    $("fTitle").value = trees[active].title;
+  };
+  $("btnDeleteTree").onclick = () => {
+    if (!active) return;
+    if (!confirm("Zmazat cely strom?")) return;
+    delete trees[active]; saveTrees(); btnReset.onclick();
+  };
+
+  // Backup only — optional
+  $("btnExport").onclick = () => {
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([JSON.stringify({ version: 2, trees }, null, 2)], { type: "application/json" }));
+    a.download = "poruchovy-strom-zaloha.json";
+    a.click();
+  };
+  $("importFile").onchange = async (e) => {
+    const f = e.target.files && e.target.files[0];
+    if (!f) return;
+    try {
+      const data = JSON.parse(await f.text());
+      if (!data.trees) throw new Error("Zly format");
+      trees = data.trees; saveTrees(); btnReset.onclick();
+    } catch (err) { alert("Import zlyhal: " + err.message); }
+    e.target.value = "";
+  };
+  $("btnDemo").onclick = () => {
+    if (!confirm("Vratit demo stromy? Tvoje ulozene upravy v prehliadaci sa prepisu.")) return;
+    trees = demoTrees(); saveTrees(); btnReset.onclick();
+  };
+
+  renderMenu();
+})();
+
+</script>
+</body>
+</html>

@@ -1,0 +1,50 @@
+
+:root{--bg:#0f1419;--card:#1a222c;--line:#2c3846;--text:#e8eef4;--muted:#9aa8b5;--accent:#3d9cf0;--yes:#3ecf8e;--no:#f07178;--node:#243041}
+*{box-sizing:border-box}body{margin:0;font-family:system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.45}
+.wrap{max-width:42rem;margin:0 auto;padding:1rem 1rem 3rem}
+h1{font-size:1.25rem;margin:.25rem 0}.sub{color:var(--muted);font-size:.85rem}
+.warn{background:#3a2428;border:1px solid #5c3036;color:#ffc9cd;padding:.75rem 1rem;border-radius:12px;margin:1rem 0;font-size:.9rem}
+.hint{font-size:.8rem;color:var(--muted);margin:.35rem 0 .75rem}
+.toolbar,.editbar{display:flex;flex-wrap:wrap;gap:.4rem;margin:.6rem 0}
+button,.filebtn{appearance:none;border:1px solid var(--line);background:var(--card);color:var(--text);border-radius:999px;padding:.5rem .9rem;font-size:.9rem;cursor:pointer}
+button.active{background:var(--accent);border-color:var(--accent);color:#061018;font-weight:650}
+button.primary{background:var(--accent);border-color:var(--accent);color:#061018;font-weight:650}
+button.ghost,.filebtn.ghost{color:var(--muted);font-size:.8rem}
+.filebtn{display:inline-block}.filebtn input{display:none}
+.editbar{border:1px dashed #4a3d8a;background:#16122a;padding:.55rem;border-radius:12px}
+.backup{margin-top:.5rem;padding:.55rem .75rem;border:1px solid var(--line);border-radius:10px;background:#12181f;font-size:.8rem;color:var(--muted)}
+.backup summary{cursor:pointer;color:var(--text);font-weight:600}
+.backup .row{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.5rem}
+.picks{display:flex;flex-wrap:wrap;gap:.5rem;margin:1rem 0}
+.node{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:1rem 1.1rem;position:relative}
+.node.root{border-color:#3d6a8a}.node.q{border-color:#3d5a4a}.node.end{border-color:#6a5a3d;background:#1f241c}
+.node.past{opacity:.9;cursor:pointer}.node.past:hover{border-color:var(--accent)}
+.node .tag{font-size:.7rem;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;margin-bottom:.35rem}
+.node .qtext{font-size:1.05rem;font-weight:600}.node .endtext{font-size:.95rem;white-space:pre-wrap}
+.trunk{width:2px;height:14px;background:#4a5a6a;margin:0 auto}
+.branch-row{display:grid;grid-template-columns:1fr 1fr;gap:.6rem;margin-top:.15rem}
+.branch{display:flex;flex-direction:column;align-items:center}
+.branch .elbow{width:100%;height:16px;position:relative}
+.branch.left .elbow::before,.branch.right .elbow::before{content:"";position:absolute;top:0;height:2px;background:#4a5a6a;width:50%}
+.branch.left .elbow::before{right:0}.branch.right .elbow::before{left:0}
+.branch .elbow::after{content:"";position:absolute;top:0;width:2px;height:100%;background:#4a5a6a;left:50%;transform:translateX(-50%)}
+.choice{display:flex;gap:.5rem;justify-content:center;margin-top:.85rem;flex-wrap:wrap}
+.choice button{min-width:6.5rem;border:none;border-radius:999px;padding:.6rem 1.2rem;font-weight:650;cursor:pointer;font-size:1rem}
+.choice .yes{background:var(--yes);color:#062416}.choice .no{background:var(--no);color:#2a0608}
+.edit-actions{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.65rem}
+.edit-actions button{font-size:.78rem;padding:.3rem .65rem;border-color:#4a3d8a}
+.crumb{font-size:.8rem;color:var(--muted);margin:.5rem 0 0;min-height:1.4rem}
+.crumb span{display:inline-block;background:var(--node);padding:.15rem .45rem;border-radius:999px;margin:.15rem .2rem 0 0}
+.hint-back{font-size:.75rem;color:var(--muted);margin-top:.35rem}
+.preview-wrap{opacity:.88}
+/* smooth appear */
+.step{animation:rise .28s ease-out}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+dialog{border:1px solid var(--line);border-radius:12px;background:var(--card);color:var(--text);width:min(36rem,96vw);padding:0}
+dialog::backdrop{background:rgba(0,0,0,.55)}
+.hd{padding:1rem;border-bottom:1px solid var(--line);font-weight:650}
+.bd{padding:1rem}.ft{padding:1rem;border-top:1px solid var(--line);display:flex;gap:.5rem;justify-content:flex-end}
+label{display:block;font-size:.75rem;color:var(--muted);margin:.4rem 0 .2rem}
+input,select,textarea{width:100%;background:#12181f;border:1px solid var(--line);color:var(--text);border-radius:8px;padding:.5rem .65rem;font-size:1rem}
+textarea{min-height:5rem;resize:vertical}
+@media(max-width:560px){.branch-row{grid-template-columns:1fr}.branch .elbow{height:10px}.branch.left .elbow::before,.branch.right .elbow::before{display:none}}

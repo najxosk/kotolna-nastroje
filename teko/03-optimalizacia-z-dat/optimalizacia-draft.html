@@ -1,0 +1,32 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Optimalizacia z dat</title>
+<link rel="stylesheet" href="optimalizacia.css" />
+</head>
+<body>
+<div class="wrap">
+  <h1>Optimalizacia z dat</h1>
+  <p class="sub">Import CSV / Excel / Word / obrazok. Draft.</p>
+  <div class="warn">Prietoky steam_th / feedwater_th = t/h. Flag len v behu. OCR obrazka potrebuje internet (CDN).</div>
+  <div class="card">
+    <label>Subor: CSV, XLSX, XLS, DOCX, PNG, JPG</label>
+    <input type="file" id="file" accept=".csv,.xlsx,.xls,.docx,text/csv,image/png,image/jpeg,image/webp,image/*" />
+    <div id="status"></div>
+    <img id="preview" alt="nahlad" />
+    <div id="ocrBox" hidden>
+      <label>Text z Word/OCR — uprav a Spracovat text</label>
+      <textarea id="ocrText"></textarea>
+      <p class="row"><button type="button" id="btnParseText">Spracovat text</button></p>
+    </div>
+  </div>
+  <div class="cards" id="metrics"></div>
+  <div id="table"></div>
+</div>
+<script src="vendor/xlsx.full.min.js"></script>
+<script src="vendor/mammoth.browser.min.js"></script>
+<script src="optimalizacia.js"></script>
+</body>
+</html>
