@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Optimalizácia z hodinových dát — draft</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 52rem; margin: 1.5rem auto; padding: 0 1rem; }
+    table { border-collapse: collapse; width: 100%; font-size: .85rem; }
+    th, td { border: 1px solid #ddd; padding: .35rem .5rem; text-align: right; }
+    th { background: #f0f3f6; }
+    .warn { background: #fff3cd; padding: .75rem 1rem; border-radius: 8px; }
+    .cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr)); gap: .75rem; margin: 1rem 0; }
+    .card { background: #f4f6f8; padding: .75rem 1rem; border-radius: 8px; }
+    .card b { display: block; font-size: 1.25rem; }
+  </style>
+</head>
+<body>
+  <h1>Optimalizácia z dát (draft)</h1>
+  <p class="warn">Načítaj CSV (napr. <code>sample-data/hourly-example.csv</code>). Žiadne ručné hodinové ťukanie — len import.</p>
+  <input type="file" id="file" accept=".csv,text/csv" />
+  <div class="cards" id="cards"></div>
+  <div id="table"></div>
+  <script>
+    const file = document.getElementById("file");
+    file.addEventListener("change", async (e) => {
+      const text = await e.target.files[0].text();
+      const lines = text.trim().split(/\r?\n/);
+      const headers = lines[0].split(",");
+      const rows = lines.slice(1).map(l => {
+        const c = l.split(",");
+        const o = {}; headers.forEach((h, i) => o[h] = c[i]); return o;
+      });
+      const num = (r, k) => parseFloat(r[k]);
+      const ratios = rows.map(r => ({
+        t: r.timestamp,
+        gas_per_mw: num(r,"gas_nm3") / num(r,"load_mw"),
+        air_per_gas: num(r,"air_flow") / num(r,"gas_nm3"),
+        steam_per_water: num(r,"steam_t") / num(r,"feedwater_t"),
+        o2: num(r,"flue_o2_pct"),
+        load: num(r,"load_mw")
+      }));
+      const avg = (k) => ratios.reduce((s, r) => s + r[k], 0) / ratios.length;
+      const cards = document.getElementById("cards");
+      cards.innerHTML = [
+        ["Ø plyn / MW", avg("gas_per_mw").toFixed(1)],
+        ["Ø vzduch / plyn", avg("air_per_gas").toFixed(2)],
+        ["Ø para / voda", avg("steam_per_water").toFixed(3)],
+        ["Ø O₂ %", avg("o2").toFixed(2)]
+      ].map(([l,v]) => `<div class="card">${l}<b>${v}</b></div>`).join("");
+      const medGas = [...ratios.map(r => r.gas_per_mw)].sort((a,b)=>a-b)[Math.floor(ratios.length/2)];
+      let html = "<table><tr><th>čas</th><th>load MW</th><th>plyn/MW</th><th>vzduch/plyn</th><th>para/voda</th><th>O₂</th><th>flag</th></tr>";
+      ratios.slice(-24).forEach(r => {
+        const flag = r.gas_per_mw > medGas * 1.08 ? "vysoká merná" : "";
+        html += `<tr><td>${r.t}</td><td>${r.load.toFixed(2)}</td><td>${r.gas_per_mw.toFixed(1)}</td><td>${r.air_per_gas.toFixed(2)}</td><td>${r.steam_per_water.toFixed(3)}</td><td>${r.o2.toFixed(2)}</td><td>${flag}</td></tr>`;
+      });
+      html += "</table><p class='muted'>Posledných 24 h zo súboru. Flag = príklad ( >8% nad medián merného plynu).</p>";
+      document.getElementById("table").innerHTML = html;
+    });
+  </script>
+</body>
+</html>
