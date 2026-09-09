@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="sk">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Alarm tree — demo (placeholder)</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 42rem; margin: 1.5rem auto; padding: 0 1rem; line-height: 1.45; }
+    .warn { background: #fff3cd; border: 1px solid #e6d089; padding: .75rem 1rem; border-radius: 8px; margin-bottom: 1rem; }
+    button { margin: .25rem .25rem 0 0; padding: .5rem .9rem; font-size: 1rem; cursor: pointer; }
+    .muted { color: #555; font-size: .9rem; }
+    #out { margin-top: 1rem; padding: 1rem; background: #f4f6f8; border-radius: 8px; min-height: 4rem; }
+  </style>
+</head>
+<body>
+  <h1>Alarm decision tree — demo</h1>
+  <p class="warn"><strong>Placeholder.</strong> Toto nie sú alarmy vašej teplárne. Slúži len na predstavu UX pre nováčikov.</p>
+  <p class="muted">Vyber symptóm, potom ÁNO/NIE.</p>
+  <div id="menu"></div>
+  <div id="out"></div>
+  <script>
+    const trees = {
+      flame: {
+        title: "Plameň zhasol (príklad)",
+        nodes: {
+          start: { q: "Je prívod plynu otvorený a tlak v norme?", yes: "air", no: "gas" },
+          air: { q: "Je vzduch / ventilátor v poriadku (beh, klapky)?", yes: "ign", no: "fan" },
+          ign: { q: "Skúsil si riadený reštart horáka podľa postupu?", yes: "call", no: "proc" },
+          gas: { end: "Pravdepodobne prívod/tlak plynu. Zatvor bezpečne, skontroluj armatúry, volaj ak tlak mimo. Zapíš: čas, tlak plynu, stav armatúr." },
+          fan: { end: "Skontroluj ventilátor / vzduchovú cestu. Zapíš: stav ventilátora, klapky, prípadný alarm vzduchu." },
+          proc: { end: "Postupuj podľa predpisu reštartu. Ak znova zhasne → ďalej ako pri volaní. Zapíš: počet pokusov." },
+          call: { end: "Opakovaný výpadok po kontrole → volaj majstra/pohotovosť. Zapíš: čo si skontroloval, časy, stavy." }
+        }
+      },
+      pressure: {
+        title: "Nízky tlak pary (príklad)",
+        nodes: {
+          start: { q: "Je odber pary náhle vyšší (veľký odber v sieti)?", yes: "load", no: "burn" },
+          load: { end: "Pravdepodobne špička odberu. Sleduj nábeh výkonu, komunikuj s odberom. Zapíš: tlak, odber ak vieš." },
+          burn: { q: "Horák beží na očakávanom výkone?", yes: "leak", no: "fuel" },
+          leak: { end: "Skontroluj odvzdušnenia / poistky / zjavné úniky. Zapíš: miesta kontroly." },
+          fuel: { end: "Over palivo a reguláciu horáka. Zapíš: výkon %, tlak pary, palivo." }
+        }
+      }
+    };
+    const menu = document.getElementById("menu");
+    const out = document.getElementById("out");
+    Object.entries(trees).forEach(([id, t]) => {
+      const b = document.createElement("button");
+      b.textContent = t.title;
+      b.onclick = () => show(id, "start");
+      menu.appendChild(b);
+    });
+    function show(treeId, nodeId) {
+      const n = trees[treeId].nodes[nodeId];
+      if (n.end) {
+        out.innerHTML = "<strong>Záver</strong><p>" + n.end + "</p><button onclick=\"location.reload()\">Späť na začiatok</button>";
+        return;
+      }
+      out.innerHTML = "<p><strong>" + n.q + "</strong></p>";
+      const y = document.createElement("button"); y.textContent = "ÁNO"; y.onclick = () => show(treeId, n.yes);
+      const no = document.createElement("button"); no.textContent = "NIE"; no.onclick = () => show(treeId, n.no);
+      out.appendChild(y); out.appendChild(no);
+    }
+  </script>
+</body>
+</html>
