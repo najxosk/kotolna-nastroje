@@ -24,6 +24,8 @@ Nový operátor; zaskakujúci kolega; ty keď chceš zjednotiť „ako to u nás
 2. Nízky tlak pary
 3. Vysoká hladina v bubne
 
+**Bezpečnosť:** demo nie je postup ani náhrada predpisu (lockouty, permissives, kto smie reštart). Nováčik to nesmie brať ako ostré. Ostré stromy až po textoch z vášho panelu + potvrdení od operátora.
+
 ## Technický návrh
 Statický `demo.html` (hotový stub) → neskôr `data/alarms.json` generovaný z obsahu od operátora.
 
