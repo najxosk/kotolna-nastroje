@@ -33,7 +33,9 @@ Horný riadok: [+ Nábeh] [+ Odstavenie] [+ Mesačný stav]
 Pod tým tabuľka chronologicky (najnovšie hore). Klik na riadok = detail/poznámka.
 
 ## Technický návrh
-Jeden `index.html` + `localStorage` (alebo stiahnuteľná Excel šablóna `dennik-sablona.xlsx`). Bez servera.
+Jeden `index.html` **alebo** Excel šablóna `dennik-sablona.xlsx` na zdieľanom disku zmeny.
+
+**Ukladanie (dôležité):** čistý `localStorage` nestačí na spoločný zápis — po vyčistení prehliadača / inom PC zmizne. v1 musí mať povinný **export/import CSV** (a ideálne súbor na share). `localStorage` len ako dočasná cache medzi exportmi. Bez servera.
 
 ## Otvorené otázky pre operátora
 1. Koľko kotlov/jednotiek treba rozlišovať a ako sa volajú?
